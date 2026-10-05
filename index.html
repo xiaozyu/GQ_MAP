@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>⚡ 巨擎導航</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/jpeg" href="icon.jpg">
+  <link rel="apple-touch-icon" href="icon.jpg">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #0b0f19;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .top-section {
+      padding: 6px 8px 3px 8px;
+      flex-shrink: 0;
+      background: #0b0f19;
+      z-index: 20;
+    }
+
+    .top-toolbar {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 5px;
+    }
+    .btn-top {
+      padding: 8px 0;
+      border: 1px solid #334155;
+      color: #f8fafc;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: bold;
+      cursor: pointer;
+      text-align: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    .btn-import { background: #2563eb; border-color: #3b82f6; flex: 1.4; }
+    .btn-clear { background: #dc2626; border-color: #ef4444; flex: 1; }
+    .btn-month { background: #0284c7; border-color: #38bdf8; flex: 1.2; }
+
+    .manual-input-bar {
+      display: flex;
+      align-items: center;
+      background: #131d31;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 2px 6px;
+      margin-bottom: 5px;
+      gap: 4px;
+    }
+    .prefix-badge {
+      background: #3b82f6;
+      color: #fff;
+      font-weight: bold;
+      font-size: 1.1rem;
+      font-family: monospace;
+      padding: 2px 8px;
+      border-radius: 4px;
+      user-select: none;
+      min-width: 36px;
+      text-align: center;
+    }
+    .manual-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #facc15;
+      font-size: 1.1rem;
+      font-family: monospace;
+      font-weight: bold;
+      outline: none;
+      text-transform: uppercase;
+    }
+    .manual-input::placeholder {
+      font-size: 0.8rem;
+      color: #64748b;
+      font-family: -apple-system, sans-serif;
+    }
+    .btn-manual-add {
+      background: #16a34a;
+      color: #fff;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .task-list-section {
+      background: #131d31;
+      border-radius: 6px;
+      border: 1px solid #1e293b;
+      padding: 3px 4px;
+      height: 185px;
+      overflow-y: auto;
+      touch-action: pan-y;
+    }
+    .task-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 33px;
+      padding: 0 6px;
+      margin-bottom: 3px;
+      background: #1e293b;
+      border-radius: 4px;
+      border-left: 4px solid #475569;
+      cursor: pointer;
+      user-select: none;
+    }
+    .task-row.active {
+      background: #1e3a5f;
+      border-left-color: #38bdf8;
+    }
+    .task-row.done {
+      opacity: 0.4;
+      text-decoration: line-through;
+    }
+
+    .sortable-chosen {
+      background: #1d4ed8 !important;
+      border-left-color: #facc15 !important;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7) !important;
+      transform: scale(1.03) !important;
+      z-index: 999 !important;
+      transition: transform 0.15s ease;
+    }
+    .sortable-ghost {
+      opacity: 0.25 !important;
+      background: #38bdf8 !important;
+      border: 1px dashed #facc15 !important;
+    }
+
+    .drag-handle {
+      color: #64748b;
+      font-size: 0.9rem;
+      margin-right: 5px;
+      cursor: grab;
+    }
+    .task-title {
+      font-family: monospace;
+      font-weight: bold;
+      font-size: 0.95rem;
+      color: #facc15;
+    }
+    .task-desc {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      margin-left: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 140px;
+    }
+    .row-actions button {
+      background: none;
+      border: 1px solid #64748b;
+      color: #cbd5e1;
+      border-radius: 3px;
+      font-size: 0.7rem;
+      padding: 2px 5px;
+      margin-left: 3px;
+    }
+
+    .nav-action-bar {
+      display: flex;
+      gap: 6px;
+      padding: 5px 8px;
+      background: #0f172a;
+      flex-shrink: 0;
+      border-top: 1px solid #1e293b;
+    }
+    .btn-nav-start {
+      flex: 2;
+      background: #16a34a;
+      color: #fff;
+      border: 1px solid #4ade80;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 0.95rem;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      padding: 7px 0;
+    }
+    .btn-toggle-view {
+      flex: 1;
+      background: #1e293b;
+      color: #f8fafc;
+      border: 1px solid #64748b;
+      padding: 7px 0;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .map-container {
+      position: relative;
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      border-top: 2px solid #38bdf8;
+      overflow: hidden;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+
+    #calendar-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 99;
+      display: none;
+      padding: 14px;
+      backdrop-filter: blur(4px);
+    }
+    .modal-content {
+      background: #1e293b;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      padding: 14px;
+      border: 1px solid #475569;
+      max-height: 94vh;
+      overflow-y: auto;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: #38bdf8;
+      margin-bottom: 10px;
+    }
+    .cal-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .cal-controls button {
+      background: #334155;
+      color: #fff;
+      border: 1px solid #64748b;
+      border-radius: 4px;
+      padding: 5px 12px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      text-align: center;
+    }
+    .cal-weekday {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      padding-bottom: 4px;
+      font-weight: bold;
+    }
+    .cal-day {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      height: 48px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      cursor: pointer;
+      position: relative;
+    }
+    .cal-day.today { border-color: #38bdf8; font-weight: bold; }
+    .cal-day.selected { border-color: #facc15; box-shadow: 0 0 8px rgba(250, 204, 21, 0.6); }
+    .cal-day.has-data {
+      border-color: #10b981;
+      background: #064e3b;
+    }
+    .badge-count {
+      font-size: 0.65rem;
+      color: #34d399;
+      margin-top: 1px;
+    }
+
+    #day-action-sheet {
+      margin-top: 12px;
+      background: #0f172a;
+      border: 1px solid #475569;
+      border-radius: 8px;
+      padding: 10px;
+      display: none;
+    }
+    .sheet-title {
+      font-size: 0.95rem;
+      font-weight: bold;
+      color: #facc15;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .sheet-desc {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      margin-bottom: 8px;
+      max-height: 50px;
+      overflow-y: auto;
+      line-height: 1.3;
+    }
+    .sheet-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .sheet-btn {
+      padding: 8px 0;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      cursor: pointer;
+      text-align: center;
+    }
+    .btn-sheet-load { background: #16a34a; color: #fff; }
+    .btn-sheet-copy { background: #0284c7; color: #fff; }
+    .btn-sheet-save { background: #eab308; color: #000; }
+    .btn-sheet-del { background: #dc2626; color: #fff; }
+  </style>
+</head>
+<body>
+
+  <div class="top-section">
+    <div class="top-toolbar">
+      <button id="btn-import" class="btn-top btn-import">📋 匯入</button>
+      <button id="btn-clear" class="btn-top btn-clear">清空</button>
+      <button id="btn-month" class="btn-top btn-month">📅 月紀錄</button>
+    </div>
+
+    <div class="manual-input-bar">
+      <span id="prefix-badge" class="prefix-badge">G</span>
+      <input type="text" id="manual-code-input" class="manual-input" placeholder="輸入圖號 (如 3850HE5330 或 F4362AC13)" autocomplete="off" autocorrect="off" spellcheck="false">
+      <button id="btn-manual-add" class="btn-manual-add">＋新增</button>
+    </div>
+
+    <div class="task-list-section">
+      <div id="task-list"></div>
+    </div>
+  </div>
+
+  <div class="nav-action-bar">
+    <a id="btn-start-nav" class="btn-nav-start" target="_blank">🚗 開始導航</a>
+    <button id="btn-toggle-view" class="btn-toggle-view">切換街景</button>
+  </div>
+
+  <div class="map-container">
+    <iframe id="map-frame" src="about:blank"></iframe>
+  </div>
+
+  <div id="calendar-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span>📅 出工月曆管理</span>
+        <button id="btn-close-modal" style="background:none; border:none; color:#cbd5e1; font-size:1.3rem;">✕</button>
+      </div>
+
+      <div class="cal-controls">
+        <button id="cal-prev">◀ 上個月</button>
+        <span id="cal-title" style="font-weight:bold; font-size:1rem; color:#facc15;"></span>
+        <button id="cal-next">下個月 ▶</button>
+      </div>
+
+      <div class="calendar-grid" id="calendar-body"></div>
+
+      <div id="day-action-sheet">
+        <div class="sheet-title">
+          <span id="sheet-date-text">2026-09-12</span>
+          <span id="sheet-count-text" style="color:#34d399;font-size:0.85rem;"></span>
+        </div>
+        <div class="sheet-desc" id="sheet-summary-text">無工單資料</div>
+        <div class="sheet-buttons">
+          <button id="btn-action-load" class="sheet-btn btn-sheet-load">🚗 載入預覽導航</button>
+          <button id="btn-action-copy" class="sheet-btn btn-sheet-copy">📋 複製日記文字</button>
+          <button id="btn-action-save" class="sheet-btn btn-sheet-save">💾 存入目前案件</button>
+          <button id="btn-action-del" class="sheet-btn btn-sheet-del">🗑️ 刪除此日紀錄</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const BASE_COORDS = {
+      'A': [90000, 2750000],  'B': [170000, 2750000], 'C': [250000, 2750000],
+      'D': [90000, 2700000],  'E': [170000, 2700000], 'F': [250000, 2700000],
+      'G': [170000, 2650000], 'H': [250000, 2650000],
+      'J': [90000, 2600000],  'K': [170000, 2600000], 'L': [250000, 2600000],
+      'M': [90000, 2550000],  'N': [170000, 2550000], 'O': [250000, 2550000],
+      'P': [90000, 2500000],  'Q': [170000, 2500000], 'R': [250000, 2500000],
+      'T': [170000, 2450000], 'U': [250000, 2450000],
+      'V': [170000, 2400000], 'W': [250000, 2400000]
+    };
+
+    const TO_DIGIT = { 'O': '0', 'I': '1', 'L': '1', 'Z': '2', 'A': '4', 'S': '5', 'G': '6', 'B': '8', 'Q': '0', 'D': '0' };
+    const TO_LETTER = { '0': 'O', '1': 'I', '8': 'B', '5': 'S', '2': 'Z' };
+
+    function sanitizeTaipowerCode(raw) {
+      let s = raw.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (s.length < 9) return raw;
+      let arr = s.split('');
+      if (TO_LETTER[arr[0]]) arr[0] = TO_LETTER[arr[0]];
+      for (let i = 1; i <= 4; i++) if (TO_DIGIT[arr[i]]) arr[i] = TO_DIGIT[arr[i]];
+      for (let i = 5; i <= 6; i++) if (TO_LETTER[arr[i]]) arr[i] = TO_LETTER[arr[i]];
+      for (let i = 7; i < arr.length; i++) if (TO_DIGIT[arr[i]]) arr[i] = TO_DIGIT[arr[i]];
+      return arr.join('');
+    }
+
+    function taipowerToTWD67(code) {
+      code = sanitizeTaipowerCode(code);
+      if (code.length < 9) return null;
+      const zone = code[0].toUpperCase();
+      if (!BASE_COORDS[zone]) return null;
+      const [baseX, baseY] = BASE_COORDS[zone];
+
+      const x_800 = parseInt(code.substring(1, 3), 10);
+      const y_500 = parseInt(code.substring(3, 5), 10);
+
+      let subXChar = code[5].toUpperCase();
+      if (subXChar === 'S') subXChar = 'B';
+      if (subXChar > 'H') subXChar = 'A';
+
+      let subYChar = code[6].toUpperCase();
+      if (subYChar > 'E') subYChar = 'A';
+
+      const subX = subXChar.charCodeAt(0) - 65;
+      const subY = subYChar.charCodeAt(0) - 65;
+
+      let offsetX = 0, offsetY = 0;
+      if (code.length >= 11) {
+        offsetX = parseInt(code.substring(7, 9), 10);
+        offsetY = parseInt(code.substring(9, 11), 10);
+      } else if (code.length >= 9) {
+        offsetX = parseInt(code[7], 10) * 10;
+        offsetY = parseInt(code[8], 10) * 10;
+      }
+      return [baseX + (x_800 * 800) + (subX * 100) + offsetX, baseY + (y_500 * 500) + (subY * 100) + offsetY];
+    }
+
+    function twd67ToWGS84(x, y) {
+      const A = 0.00001549, B = 0.000006521;
+      const x97 = x + 807.8 + A * x + B * y;
+      const y97 = y - 248.6 + A * y - B * x;
+
+      const a = 6378137.0, b = 6356752.314245, lon0 = 121.0 * Math.PI / 180, k0 = 0.9999, dx = 250000;
+      const e = Math.sqrt(1 - (b * b) / (a * a)), e2 = (e * e) / (1 - e * e);
+      const M = y97 / k0;
+      const mu = M / (a * (1 - e*e/4 - 3*e*e*e*e/64 - 5*e*e*e*e*e*e/256));
+      const e1 = (1 - Math.sqrt(1 - e*e)) / (1 + Math.sqrt(1 - e*e));
+
+      const fp = mu + (3*e1/2 - 27*e1*e1*e1/32)*Math.sin(2*mu) + (21*e1*e1/16 - 55*e1*e1*e1*e1/32)*Math.sin(4*mu) + (151*e1*e1*e1/96)*Math.sin(6*mu);
+      const C1 = e2 * Math.pow(Math.cos(fp), 2);
+      const T1 = Math.pow(Math.tan(fp), 2);
+      const R1 = a * (1 - e*e) / Math.pow(1 - e*e * Math.sin(fp)*Math.sin(fp), 1.5);
+      const N1 = a / Math.sqrt(1 - e*e * Math.sin(fp)*Math.sin(fp));
+      const D = (x97 - dx) / (N1 * k0);
+
+      const latRad = fp - (N1 * Math.tan(fp) / R1) * ((D*D/2) - (5 + 3*T1 + 10*C1 - 4*C1*C1 - 9*e2)*Math.pow(D,4)/24 + (61 + 90*T1 + 298*C1 + 45*T1*T1 - 252*e2 - 3*C1*C1)*Math.pow(D,6)/720);
+      const lonRad = lon0 + (D - (1 + 2*T1 + C1)*Math.pow(D,3)/6 + (5 - 2*C1 + 28*T1 - 3*C1*C1 + 8*e2 + 24*T1*T1)*Math.pow(D,5)/120) / Math.cos(fp);
+
+      return { lat: (latRad * 180 / Math.PI).toFixed(6), lng: (lonRad * 180 / Math.PI).toFixed(6) };
+    }
+
+    async function fetchRoadName(lat, lng) {
+      try {
+        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+        const resp = await fetch(url, { headers: { 'Accept-Language': 'zh-TW' } });
+        if (!resp.ok) return '';
+        const data = await resp.json();
+        const addr = data.address || {};
+        return addr.road || addr.street || addr.suburb || addr.neighbourhood || '';
+      } catch (e) {
+        return '';
+      }
+    }
+
+    const todayKey = new Date().toISOString().split('T')[0];
+    let monthLogs = JSON.parse(localStorage.getItem('tpc_month_logs') || '{}');
+    
+    let lastActiveDate = localStorage.getItem('tpc_last_active_date');
+    let tasks = [];
+
+    if (lastActiveDate === todayKey) {
+      tasks = JSON.parse(localStorage.getItem('tpc_tasks') || '[]');
+    } else {
+      let oldTasks = JSON.parse(localStorage.getItem('tpc_tasks') || '[]');
+      if (oldTasks.length > 0 && lastActiveDate) {
+        monthLogs[lastActiveDate] = [...oldTasks];
+        localStorage.setItem('tpc_month_logs', JSON.stringify(monthLogs));
+      }
+      tasks = [];
+      localStorage.setItem('tpc_tasks', JSON.stringify([]));
+    }
+
+    localStorage.setItem('tpc_last_active_date', todayKey);
+
+    let currentIndex = 0;
+    let isStreetView = false;
+
+    let viewYear = new Date().getFullYear();
+    let viewMonth = new Date().getMonth();
+    let selectedDate = todayKey;
+
+    const btnImport = document.getElementById('btn-import');
+    const btnClear = document.getElementById('btn-clear');
+    const btnMonth = document.getElementById('btn-month');
+    const taskList = document.getElementById('task-list');
+    const btnStartNav = document.getElementById('btn-start-nav');
+    const btnToggleView = document.getElementById('btn-toggle-view');
+    const mapFrame = document.getElementById('map-frame');
+
+    const manualCodeInput = document.getElementById('manual-code-input');
+    const btnManualAdd = document.getElementById('btn-manual-add');
+    const prefixBadge = document.getElementById('prefix-badge');
+
+    // 動態監聽輸入，如果開頭打了英文字母，前綴標籤跟著變動
+    manualCodeInput.addEventListener('input', () => {
+      let val = manualCodeInput.value.trim().toUpperCase();
+      if (/^[A-Z]/.test(val)) {
+        prefixBadge.innerText = val[0];
+        manualCodeInput.value = val.substring(1); // 區塊字母抽出來顯示在標籤上
+      } else if (!val) {
+        prefixBadge.innerText = 'G'; // 沒輸入時預設 G
+      }
+    });
+
+    const calendarModal = document.getElementById('calendar-modal');
+    const btnCloseModal = document.getElementById('btn-close-modal');
+    const calTitle = document.getElementById('cal-title');
+    const calendarBody = document.getElementById('calendar-body');
+    const calPrev = document.getElementById('cal-prev');
+    const calNext = document.getElementById('cal-next');
+
+    const dayActionSheet = document.getElementById('day-action-sheet');
+    const sheetDateText = document.getElementById('sheet-date-text');
+    const sheetCountText = document.getElementById('sheet-count-text');
+    const sheetSummaryText = document.getElementById('sheet-summary-text');
+    const btnActionLoad = document.getElementById('btn-action-load');
+    const btnActionCopy = document.getElementById('btn-action-copy');
+    const btnActionSave = document.getElementById('btn-action-save');
+    const btnActionDel = document.getElementById('btn-action-del');
+
+    function saveTasks() {
+      localStorage.setItem('tpc_tasks', JSON.stringify(tasks));
+      if (tasks.length > 0) {
+        monthLogs[todayKey] = [...tasks];
+        localStorage.setItem('tpc_month_logs', JSON.stringify(monthLogs));
+      }
+    }
+
+    const COORD_REGEX = /[A-Za-z]?[0-9]{4}\s*[A-Za-z]{2}\s*(?:[0-9]{4}|[0-9]{2})/gi;
+
+    async function parseText(content) {
+      if (!content || !content.trim()) return;
+
+      const lines = content.split(/[\r\n]+/);
+      const newTasks = [];
+
+      lines.forEach(line => {
+        if (line.includes("每頁") || line.includes("施工地點") || line.includes("當日") || line.includes("領班")) return;
+
+        let matches = line.match(COORD_REGEX);
+        if (matches) {
+          matches.forEach(m => {
+            let rawCode = m.replace(/\s+/g, '').toUpperCase();
+            // 如果開頭是數字，才預設補上 G；如果是英文開頭（如 F43...），則保留原本的英文區塊代號
+            if (/^[0-9]/.test(rawCode)) {
+              rawCode = 'G' + rawCode;
+            }
+
+            const cleanCode = sanitizeTaipowerCode(rawCode);
+            let note = line.replace(m, '').replace(/[\s,]+/g, ' ').trim();
+
+            if (cleanCode && !tasks.some(t => t.code === cleanCode) && !newTasks.some(t => t.code === cleanCode)) {
+              newTasks.push({ code: cleanCode, note: note || '', done: false });
+            }
+          });
+        }
+      });
+
+      if (newTasks.length > 0) {
+        const startIndex = tasks.length;
+        tasks.push(...newTasks);
+        saveTasks();
+        renderTasks();
+        selectTask(startIndex);
+
+        newTasks.forEach(async (taskItem) => {
+          const twd67 = taipowerToTWD67(taskItem.code);
+          if (twd67) {
+            const wgs = twd67ToWGS84(twd67[0], twd67[1]);
+            const road = await fetchRoadName(wgs.lat, wgs.lng);
+            if (road) {
+              taskItem.note = taskItem.note ? `${taskItem.note} (${road})` : road;
+              saveTasks();
+              renderTasks();
+            }
+          }
+        });
+      }
+    }
+
+    async function handleManualAdd() {
+      let val = manualCodeInput.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (!val) return;
+
+      // 取得目前標籤上的區塊字母（預設為 G，若使用者改過就是 F 等）
+      let currentPrefix = prefixBadge.innerText.toUpperCase();
+      
+      const fullCode = sanitizeTaipowerCode(currentPrefix + val);
+      if (fullCode.length < 9) return;
+
+      const newTask = { code: fullCode, note: '查詢路名中...', done: false };
+      tasks.push(newTask);
+      saveTasks();
+      renderTasks();
+      selectTask(tasks.length - 1);
+      
+      // 清空輸入並將標籤重設回 G
+      manualCodeInput.value = '';
+      prefixBadge.innerText = 'G';
+
+      const twd67 = taipowerToTWD67(fullCode);
+      if (twd67) {
+        const wgs = twd67ToWGS84(twd67[0], twd67[1]);
+        const road = await fetchRoadName(wgs.lat, wgs.lng);
+        newTask.note = road || '施工地點';
+        saveTasks();
+        renderTasks();
+      } else {
+        newTask.note = '手動新增';
+        saveTasks();
+        renderTasks();
+      }
+    }
+
+    btnManualAdd.onclick = handleManualAdd;
+    manualCodeInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') handleManualAdd();
+    });
+
+    btnImport.onclick = async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text && text.trim()) {
+          parseText(text);
+          return;
+        }
+      } catch (err) {
+        console.warn("無法直接讀取剪貼簿，改用多行輸入彈窗:", err);
+      }
+      showMultilineInputModal();
+    };
+
+    function showMultilineInputModal() {
+      let modal = document.getElementById('manual-paste-modal');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'manual-paste-modal';
+        modal.style.cssText = `
+          position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+          z-index: 100; display: flex; align-items: center; justify-content: center;
+          padding: 16px; backdrop-filter: blur(4px);
+        `;
+        modal.innerHTML = `
+          <div style="background: #1e293b; border: 1px solid #475569; border-radius: 12px; width: 100%; max-width: 480px; padding: 14px; display: flex; flex-direction: column; gap: 10px;">
+            <div style="font-weight: bold; color: #38bdf8; font-size: 1rem;">📋 貼上派工單文字 (支援多行)</div>
+            <textarea id="paste-textarea" style="width: 100%; height: 160px; background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #facc15; font-family: monospace; font-size: 0.9rem; padding: 8px; resize: none; outline: none;" placeholder="把整段圈選的文字貼在此處..."></textarea>
+            <div style="display: flex; gap: 8px; justify-content: flex-end;">
+              <button id="btn-cancel-paste" style="background: #475569; border: none; color: #fff; padding: 8px 14px; border-radius: 6px; font-weight: bold;">取消</button>
+              <button id="btn-confirm-paste" style="background: #2563eb; border: none; color: #fff; padding: 8px 16px; border-radius: 6px; font-weight: bold;">解析匯入</button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modal);
+
+        document.getElementById('btn-cancel-paste').onclick = () => { modal.style.display = 'none'; };
+        document.getElementById('btn-confirm-paste').onclick = () => {
+          const val = document.getElementById('paste-textarea').value;
+          modal.style.display = 'none';
+          document.getElementById('paste-textarea').value = '';
+          parseText(val);
+        };
+      }
+      modal.style.display = 'flex';
+      setTimeout(() => document.getElementById('paste-textarea').focus(), 100);
+    }
+
+    btnClear.onclick = () => {
+      if (confirm('確定清空今日的所有工單？')) {
+        tasks = [];
+        saveTasks();
+        renderTasks();
+        mapFrame.src = 'about:blank';
+      }
+    };
+
+    btnMonth.onclick = () => {
+      viewYear = new Date().getFullYear();
+      viewMonth = new Date().getMonth();
+      selectedDate = todayKey;
+      renderCalendar();
+      updateActionSheet(todayKey);
+      calendarModal.style.display = 'block';
+    };
+    btnCloseModal.onclick = () => {
+      calendarModal.style.display = 'none';
+    };
+
+    let sortableInstance = null;
+
+    function renderTasks() {
+      taskList.innerHTML = '';
+      if (tasks.length === 0) {
+        taskList.innerHTML = '<div style="color:#64748b;font-size:0.85rem;padding:6px;">尚未匯入案件，可手動輸入或按「📋 匯入」。</div>';
+        return;
+      }
+
+      tasks.forEach((t, idx) => {
+        const row = document.createElement('div');
+        row.className = `task-row ${idx === currentIndex ? 'active' : ''} ${t.done ? 'done' : ''}`;
+        row.dataset.code = t.code;
+
+        row.innerHTML = `
+          <div style="display:flex;align-items:baseline;">
+            <span class="drag-handle">☰</span>
+            <span class="task-num-label" style="color:#38bdf8;font-weight:bold;margin-right:5px;">#${idx + 1}</span>
+            <span class="task-title">${t.code}</span>
+            <span class="task-desc">${t.note || '施工地點'}</span>
+          </div>
+          <div class="row-actions">
+            <button onclick="toggleDone(${idx})">${t.done ? '復原' : '完工'}</button>
+            <button style="color:#ef4444;" onclick="deleteTask(${idx})">✕</button>
+          </div>
+        `;
+
+        row.onclick = (e) => {
+          if (e.target.tagName === 'BUTTON') return;
+          selectTask(idx);
+        };
+
+        taskList.appendChild(row);
+      });
+
+      if (sortableInstance) sortableInstance.destroy();
+
+      sortableInstance = new Sortable(taskList, {
+        animation: 180,
+        delay: 150,
+        delayOnTouchOnly: true,
+        touchStartThreshold: 3,
+        ghostClass: 'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+        onStart: function() {
+          if (navigator.vibrate) navigator.vibrate(35);
+        },
+        onEnd: function(evt) {
+          const oldIdx = evt.oldIndex;
+          const newIdx = evt.newIndex;
+          if (oldIdx === newIdx) return;
+
+          const moved = tasks.splice(oldIdx, 1)[0];
+          tasks.splice(newIdx, 0, moved);
+
+          if (currentIndex === oldIdx) {
+            currentIndex = newIdx;
+          } else if (oldIdx < currentIndex && newIdx >= currentIndex) {
+            currentIndex--;
+          } else if (oldIdx > currentIndex && newIdx <= currentIndex) {
+            currentIndex++;
+          }
+
+          saveTasks();
+          document.querySelectorAll('.task-row').forEach((r, i) => {
+            r.querySelector('.task-num-label').innerText = `#${i + 1}`;
+            r.classList.toggle('active', i === currentIndex);
+          });
+        }
+      });
+
+      selectTask(currentIndex);
+    }
+
+    function selectTask(idx) {
+      if (idx < 0 || idx >= tasks.length) return;
+      currentIndex = idx;
+      const t = tasks[currentIndex];
+
+      const twd67 = taipowerToTWD67(t.code);
+      if (twd67) {
+        const wgs = twd67ToWGS84(twd67[0], twd67[1]);
+        btnStartNav.href = `https://www.google.com/maps/dir/?api=1&destination=${wgs.lat},${wgs.lng}`;
+        btnStartNav.style.opacity = '1';
+        btnStartNav.style.pointerEvents = 'auto';
+        updateMap(wgs.lat, wgs.lng);
+      } else {
+        btnStartNav.style.opacity = '0.4';
+        btnStartNav.style.pointerEvents = 'none';
+        mapFrame.src = 'about:blank';
+      }
+
+      document.querySelectorAll('.task-row').forEach((el, i) => {
+        el.classList.toggle('active', i === currentIndex);
+      });
+    }
+
+    function updateMap(lat, lng) {
+      if (isStreetView) {
+        mapFrame.src = `https://maps.google.com/maps?layer=c&cbll=${lat},${lng}&cbp=12,0,0,0,0&output=svembed`;
+      } else {
+        mapFrame.src = `https://maps.google.com/maps?q=${lat},${lng}&hl=zh-TW&z=18&output=embed`;
+      }
+    }
+
+    btnToggleView.onclick = () => {
+      isStreetView = !isStreetView;
+      btnToggleView.innerText = isStreetView ? "切換地圖" : "切換街景";
+      const t = tasks[currentIndex];
+      if (t) {
+        const twd67 = taipowerToTWD67(t.code);
+        if (twd67) {
+          const wgs = twd67ToWGS84(twd67[0], twd67[1]);
+          updateMap(wgs.lat, wgs.lng);
+        }
+      }
+    };
+
+    window.toggleDone = (idx) => {
+      tasks[idx].done = !tasks[idx].done;
+      saveTasks();
+      renderTasks();
+    };
+
+    window.deleteTask = (idx) => {
+      tasks.splice(idx, 1);
+      if (currentIndex >= tasks.length) currentIndex = Math.max(0, tasks.length - 1);
+      saveTasks();
+      renderTasks();
+    };
+
+    function renderCalendar() {
+      calendarBody.innerHTML = '';
+      const year = viewYear;
+      const month = viewMonth;
+      calTitle.innerText = `${year} 年 ${month + 1} 月`;
+
+      ['日', '一', '二', '三', '四', '五', '六'].forEach(d => {
+        const h = document.createElement('div');
+        h.className = 'cal-weekday';
+        h.innerText = d;
+        calendarBody.appendChild(h);
+      });
+
+      const firstDayIndex = new Date(year, month, 1).getDay();
+      const totalDays = new Date(year, month + 1, 0).getDate();
+
+      for (let i = 0; i < firstDayIndex; i++) {
+        const empty = document.createElement('div');
+        calendarBody.appendChild(empty);
+      }
+
+      for (let day = 1; day <= totalDays; day++) {
+        const cell = document.createElement('div');
+        cell.className = 'cal-day';
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        
+        if (dateStr === todayKey) cell.classList.add('today');
+        if (dateStr === selectedDate) cell.classList.add('selected');
+        
+        const dayRecords = monthLogs[dateStr] || [];
+        if (dayRecords.length > 0) {
+          cell.classList.add('has-data');
+        }
+
+        cell.innerHTML = `
+          <span>${day}</span>
+          ${dayRecords.length > 0 ? `<span class="badge-count">${dayRecords.length}件</span>` : ''}
+        `;
+
+        cell.onclick = () => {
+          selectedDate = dateStr;
+          document.querySelectorAll('.cal-day').forEach(c => c.classList.remove('selected'));
+          cell.classList.add('selected');
+          updateActionSheet(dateStr);
+        };
+
+        calendarBody.appendChild(cell);
+      }
+    }
+
+    calPrev.onclick = () => {
+      viewMonth--;
+      if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+      renderCalendar();
+    };
+
+    calNext.onclick = () => {
+      viewMonth++;
+      if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+      renderCalendar();
+    };
+
+    function updateActionSheet(dateStr) {
+      dayActionSheet.style.display = 'block';
+      sheetDateText.innerText = `📅 ${dateStr}`;
+      const records = monthLogs[dateStr] || [];
+
+      if (records.length > 0) {
+        sheetCountText.innerText = `(共 ${records.length} 件工單)`;
+        sheetSummaryText.innerHTML = records.map((t, i) => `${i + 1}. ${t.code} ${t.note}`).join('<br>');
+        btnActionLoad.disabled = false;
+        btnActionCopy.disabled = false;
+        btnActionDel.disabled = false;
+        btnActionLoad.style.opacity = '1';
+        btnActionCopy.style.opacity = '1';
+        btnActionDel.style.opacity = '1';
+      } else {
+        sheetCountText.innerText = '(尚無紀錄)';
+        sheetSummaryText.innerText = '當天沒有保存工單，可點下方按鈕存入目前案件。';
+        btnActionLoad.disabled = true;
+        btnActionCopy.disabled = true;
+        btnActionDel.disabled = true;
+        btnActionLoad.style.opacity = '0.35';
+        btnActionCopy.style.opacity = '0.35';
+        btnActionDel.style.opacity = '0.35';
+      }
+    }
+
+    btnActionLoad.onclick = () => {
+      const records = monthLogs[selectedDate];
+      if (records && records.length > 0) {
+        tasks = [...records];
+        saveTasks();
+        renderTasks();
+        calendarModal.style.display = 'none';
+      }
+    };
+
+    btnActionCopy.onclick = async () => {
+      const records = monthLogs[selectedDate];
+      if (!records || records.length === 0) return;
+
+      const text = `${selectedDate} 工單紀錄：\n` + records.map((t, idx) => `${idx + 1}. ${t.code} (${t.note})`).join('\n');
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch (err) {
+        prompt("請手動複製以下工單：", text);
+      }
+    };
+
+    btnActionSave.onclick = () => {
+      if (tasks.length === 0) return;
+      if (confirm(`是否將目前畫面上的 ${tasks.length} 筆案件存入 ${selectedDate}？`)) {
+        monthLogs[selectedDate] = [...tasks];
+        localStorage.setItem('tpc_month_logs', JSON.stringify(monthLogs));
+        renderCalendar();
+        updateActionSheet(selectedDate);
+      }
+    };
+
+    btnActionDel.onclick = () => {
+      if (!monthLogs[selectedDate]) return;
+      if (confirm(`⚠️ 確定要刪除 ${selectedDate} 的所有工單紀錄嗎？（無法復原）`)) {
+        delete monthLogs[selectedDate];
+        localStorage.setItem('tpc_month_logs', JSON.stringify(monthLogs));
+        renderCalendar();
+        updateActionSheet(selectedDate);
+      }
+    };
+
+    renderTasks();
+  </script>
+</body>
+</html>
